@@ -73,29 +73,39 @@ export default function CardEditModal({
 
   const handleTakePhoto = async () => {
     setUploadError(null);
-    const result = await takePhoto();
-    if (!result || !result.assets?.[0]) return;
-    setUploading(true);
-    const url = await uploadCardPhoto(result.assets[0].uri);
-    setUploading(false);
-    if (url) {
-      setPhotoUrl(url);
-    } else {
-      setUploadError('Could not upload photo. Please try again.');
+    try {
+      const result = await takePhoto();
+      if (!result) return;
+      setUploading(true);
+      const url = await uploadCardPhoto(result.uri);
+      setUploading(false);
+      if (url) {
+        setPhotoUrl(url);
+      } else {
+        setUploadError('Could not upload photo. Please try again.');
+      }
+    } catch (e: any) {
+      setUploading(false);
+      setUploadError(e?.message ?? 'Could not take photo. Please try again.');
     }
   };
 
   const handlePickPhoto = async () => {
     setUploadError(null);
-    const result = await pickFromLibrary();
-    if (!result || !result.assets?.[0]) return;
-    setUploading(true);
-    const url = await uploadCardPhoto(result.assets[0].uri);
-    setUploading(false);
-    if (url) {
-      setPhotoUrl(url);
-    } else {
-      setUploadError('Could not upload photo. Please try again.');
+    try {
+      const result = await pickFromLibrary();
+      if (!result) return;
+      setUploading(true);
+      const url = await uploadCardPhoto(result.uri);
+      setUploading(false);
+      if (url) {
+        setPhotoUrl(url);
+      } else {
+        setUploadError('Could not upload photo. Please try again.');
+      }
+    } catch (e: any) {
+      setUploading(false);
+      setUploadError(e?.message ?? 'Could not pick photo. Please try again.');
     }
   };
 
