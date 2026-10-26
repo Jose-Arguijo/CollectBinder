@@ -8,10 +8,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Pressable,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
-import { X, Camera, Trash2 } from 'lucide-react-native';
+import { X, Camera, Image as ImageIcon, Trash2, Plus } from 'lucide-react-native';
 import { Typography, Radius, Spacing, CONDITIONS, type Theme } from '@/lib/theme';
 import type { Card } from '@/lib/supabase';
+import { takePhoto, pickFromLibrary, uploadCardPhoto, deleteCardPhoto } from '@/lib/photoUpload';
 
 type Props = {
   visible: boolean;
@@ -51,6 +54,8 @@ export default function CardEditModal({
   const [value, setValue] = useState('0');
   const [notes, setNotes] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -62,8 +67,44 @@ export default function CardEditModal({
       setValue(String(editing?.value ?? 0));
       setNotes(editing?.notes ?? '');
       setPhotoUrl(editing?.photo_url ?? null);
+      setUploadError(null);
     }
   }, [visible, editing]);
+
+  const handleTakePhoto = async () => {
+    setUploadError(null);
+    const result = await takePhoto();
+    if (!result || !result.assets?.[0]) return;
+    setUploading(true);
+    const url = await uploadCardPhoto(result.assets[0].uri);
+    setUploading(false);
+    if (url) {
+      setPhotoUrl(url);
+    } else {
+      setUploadError('Could not upload photo. Please try again.');
+    }
+  };
+
+  const handlePickPhoto = async () => {
+    setUploadError(null);
+    const result = await pickFromLibrary();
+    if (!result || !result.assets?.[0]) return;
+    setUploading(true);
+    const url = await uploadCardPhoto(result.assets[0].uri);
+    setUploading(false);
+    if (url) {
+      setPhotoUrl(url);
+    } else {
+      setUploadError('Could not upload photo. Please try again.');
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    if (photoUrl) {
+      deleteCardPhoto(photoUrl);
+    }
+    setPhotoUrl(null);
+  };
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -100,6 +141,57 @@ export default function CardEditModal({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} style={styles.body}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Card Photo</Text>
+            {photoUrl ? (
+              <View style={styles.photoPreviewWrap}>
+                <Image source={{ uri: photoUrl }} style={[styles.photoPreview, { borderColor: theme.border }]} resizeMode="cover" />
+                <TouchableOpacity
+                  onPress={handleRemovePhoto}
+                  style={[styles.removePhotoBtn, { backgroundColor: theme.bgElevated, borderColor: theme.border }]}
+                >
+                  <Trash2 size={18} color="#ef4444" strokeWidth={2} />
+                  <Text style={[styles.removePhotoText, { color: '#ef4444' }]}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.photoActions}>
+                <TouchableOpacity
+                  onPress={handleTakePhoto}
+                  style={[styles.photoBtn, { backgroundColor: theme.bgSecondary, borderColor: theme.border }]}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <ActivityIndicator size="small" color={theme.accent} />
+                  ) : (
+                    <>
+                      <Camera size={28} color={theme.textPrimary} strokeWidth={2} />
+                      <Text style={[styles.photoBtnText, { color: theme.textPrimary }]}>Take Photo</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handlePickPhoto}
+                  style={[styles.photoBtn, { backgroundColor: theme.bgSecondary, borderColor: theme.border }]}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <ActivityIndicator size="small" color={theme.accent} />
+                  ) : (
+                    <>
+                      <ImageIcon size={28} color={theme.textPrimary} strokeWidth={2} />
+                      <Text style={[styles.photoBtnText, { color: theme.textPrimary }]}>Choose</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+            {uploadError && <Text style={styles.uploadErrorText}>{uploadError}</Text>}
+            {!photoUrl && (
+              <Text style={[styles.photoHint, { color: theme.textTertiary }]}>
+                Snap a photo of your card, or pick one from your library.
+              </Text>
+            )}
+
             <Text style={[styles.label, { color: theme.textSecondary }]}>Name *</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.bgSecondary, color: theme.textPrimary, borderColor: theme.border }]}
@@ -193,16 +285,6 @@ export default function CardEditModal({
               multiline
               numberOfLines={3}
             />
-
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Photo URL (optional)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.bgSecondary, color: theme.textPrimary, borderColor: theme.border }]}
-              value={photoUrl ?? ''}
-              onChangeText={setPhotoUrl}
-              placeholder="https://..."
-              placeholderTextColor={theme.textTertiary}
-              autoCapitalize="none"
-            />
           </ScrollView>
 
           <View style={[styles.actions, onDelete && { gap: Spacing.sm }]}>
@@ -216,8 +298,8 @@ export default function CardEditModal({
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSave}
-              disabled={!name.trim()}
-              style={[styles.btn, styles.btnPrimary, { backgroundColor: name.trim() ? theme.accent : theme.border }]}
+              disabled={!name.trim() || uploading}
+              style={[styles.btn, styles.btnPrimary, { backgroundColor: name.trim() && !uploading ? theme.accent : theme.border }]}
             >
               <Text style={[styles.btnText, { color: theme.accentText }]}>{editing ? 'Save' : 'Add'}</Text>
             </TouchableOpacity>
@@ -297,6 +379,60 @@ const styles = StyleSheet.create({
   conditionText: {
     fontFamily: Typography.fontFamilyMedium,
     fontSize: 13,
+  },
+  photoActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  photoBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  photoBtnText: {
+    fontFamily: Typography.fontFamilyMedium,
+    fontSize: 14,
+  },
+  photoPreviewWrap: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  photoPreview: {
+    width: 150,
+    height: 210,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  removePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+  },
+  removePhotoText: {
+    fontFamily: Typography.fontFamilyMedium,
+    fontSize: 13,
+  },
+  photoHint: {
+    fontFamily: Typography.fontFamilyRegular,
+    fontSize: 13,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+  },
+  uploadErrorText: {
+    fontFamily: Typography.fontFamilyMedium,
+    fontSize: 13,
+    color: '#ef4444',
+    marginTop: Spacing.sm,
+    textAlign: 'center',
   },
   actions: {
     flexDirection: 'row',
