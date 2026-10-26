@@ -29,17 +29,7 @@ export default function HomeScreen() {
   const filtered = useMemo(() => {
     if (!search.trim()) return tree;
     const query = search.toLowerCase();
-    const matchCollection = (col: CollectionWithStats): CollectionWithStats | null => {
-      const selfMatch = col.name.toLowerCase().includes(query);
-      const matchedChildren = col.childCollections
-        .map(matchCollection)
-        .filter(Boolean) as CollectionWithStats[];
-      if (selfMatch || matchedChildren.length > 0) {
-        return { ...col, childCollections: selfMatch ? col.childCollections : matchedChildren };
-      }
-      return null;
-    };
-    return tree.map(matchCollection).filter(Boolean) as CollectionWithStats[];
+    return tree.filter((col) => col.name.toLowerCase().includes(query));
   }, [tree, search]);
 
   if (loading) {
@@ -110,22 +100,12 @@ export default function HomeScreen() {
           )
         ) : (
           filtered.map((col) => (
-            <View key={col.id}>
-              <CollectionCard
-                collection={col}
-                theme={theme}
-                onPress={() => router.push(`/collection/${col.id}`)}
-              />
-              {col.childCollections.map((child) => (
-                <CollectionCard
-                  key={child.id}
-                  collection={child}
-                  theme={theme}
-                  depth={1}
-                  onPress={() => router.push(`/collection/${child.id}`)}
-                />
-              ))}
-            </View>
+            <CollectionCard
+              key={col.id}
+              collection={col}
+              theme={theme}
+              onPress={() => router.push(`/collection/${col.id}`)}
+            />
           ))
         )}
       </ScrollView>
