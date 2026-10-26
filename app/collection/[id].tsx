@@ -32,6 +32,7 @@ export default function CollectionDetailScreen() {
     error,
     getCollection,
     getCardsInCollection,
+    getCardsInCollectionTree,
     getSubcollections,
     addCollection,
     updateCollection,
@@ -53,7 +54,8 @@ export default function CollectionDetailScreen() {
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
 
   const collection = id ? getCollection(id) : undefined;
-  const allCards = useMemo(() => (id ? getCardsInCollection(id) : []), [id, getCardsInCollection]);
+  const ownCards = useMemo(() => (id ? getCardsInCollection(id) : []), [id, getCardsInCollection]);
+  const allCards = useMemo(() => (id ? getCardsInCollectionTree(id) : []), [id, getCardsInCollectionTree]);
   const subcollections = useMemo(() => (id ? getSubcollections(id) : []), [id, getSubcollections]);
 
   const collectionStats = useMemo(() => {
@@ -79,6 +81,11 @@ export default function CollectionDetailScreen() {
         c.notes.toLowerCase().includes(q),
     );
   }, [allCards, search]);
+
+  const collectionMap = useMemo(() => {
+    const map = new Map(collections.map((c) => [c.id, c]));
+    return map;
+  }, [collections]);
 
   if (loading) {
     return (
@@ -241,6 +248,16 @@ export default function CollectionDetailScreen() {
             collection={collection}
             theme={theme}
             onCardPress={(card) => setEditingCardId(card.id)}
+            getCardStyle={(card) => {
+              const cardCol = collectionMap.get(card.collection_id);
+              return {
+                icon: cardCol?.icon ?? collection.icon,
+                color: cardCol?.color ?? collection.color,
+                subLabel: cardCol && cardCol.id !== collection.id
+                  ? `${cardCol.icon} ${cardCol.name}`
+                  : undefined,
+              };
+            }}
           />
         ) : (
           <FlatList
@@ -249,27 +266,35 @@ export default function CollectionDetailScreen() {
             numColumns={2}
             contentContainerStyle={styles.grid}
             columnWrapperStyle={styles.gridRow}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.gridItem}
-                onPress={() => setEditingCardId(item.id)}
-                activeOpacity={0.8}
-              >
-                <CardFace
-                  card={item}
-                  icon={collection.icon}
-                  color={collection.color}
-                  size={150}
-                  photoUrl={item.photo_url}
-                />
-                <Text style={[styles.gridName, { color: theme.textPrimary }]} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={[styles.gridValue, { color: theme.textSecondary }]}>
-                  {formatCurrency(item.value * item.quantity)}
-                </Text>
-              </TouchableOpacity>
-            )}
+            renderItem={({ item }) => {
+              const cardCollection = collectionMap.get(item.collection_id);
+              return (
+                <TouchableOpacity
+                  style={styles.gridItem}
+                  onPress={() => setEditingCardId(item.id)}
+                  activeOpacity={0.8}
+                >
+                  <CardFace
+                    card={item}
+                    icon={cardCollection?.icon ?? collection.icon}
+                    color={cardCollection?.color ?? collection.color}
+                    size={150}
+                    photoUrl={item.photo_url}
+                  />
+                  <Text style={[styles.gridName, { color: theme.textPrimary }]} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {cardCollection && cardCollection.id !== collection.id && (
+                    <Text style={[styles.gridSubLabel, { color: theme.textTertiary }]} numberOfLines={1}>
+                      {cardCollection.icon} {cardCollection.name}
+                    </Text>
+                  )}
+                  <Text style={[styles.gridValue, { color: theme.textSecondary }]}>
+                    {formatCurrency(item.value * item.quantity)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
           />
         )}
       </View>
@@ -573,6 +598,10 @@ const styles = StyleSheet.create({
   gridName: {
     fontFamily: Typography.fontFamilySemiBold,
     fontSize: 13,
+  },
+  gridSubLabel: {
+    fontFamily: Typography.fontFamilyRegular,
+    fontSize: 11,
   },
   gridValue: {
     fontFamily: Typography.fontFamilyMedium,

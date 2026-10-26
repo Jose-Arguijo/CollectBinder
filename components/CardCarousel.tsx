@@ -5,25 +5,27 @@ import Animated, {
   useSharedValue,
   interpolate,
   Extrapolation,
-  withTiming,
 } from 'react-native-reanimated';
 import { Typography, Spacing, type Theme } from '@/lib/theme';
 import { formatCurrency } from '@/lib/useCollectionData';
 import type { Card, Collection } from '@/lib/supabase';
 import CardFace from './CardFace';
 
+type CardStyle = { icon: string; color: string; subLabel?: string };
+
 type Props = {
   cards: Card[];
   collection: Collection;
   theme: Theme;
   onCardPress: (card: Card) => void;
+  getCardStyle?: (card: Card) => CardStyle;
 };
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_SIZE = Math.min(screenWidth * 0.55, 220);
 const SPACING = screenWidth * 0.1;
 
-export default function CardCarousel({ cards, collection, theme, onCardPress }: Props) {
+export default function CardCarousel({ cards, collection, theme, onCardPress, getCardStyle }: Props) {
   const scrollX = useSharedValue(0);
   const flatListRef = useRef<FlatList<Card>>(null);
 
@@ -39,6 +41,9 @@ export default function CardCarousel({ cards, collection, theme, onCardPress }: 
   const renderItem = useCallback(
     ({ item, index }: { item: Card; index: number }) => {
       const cardWidth = CARD_SIZE + SPACING * 2;
+      const style = getCardStyle
+        ? getCardStyle(item)
+        : { icon: collection.icon, color: collection.color, subLabel: undefined };
 
       return (
         <CarouselItem
@@ -46,13 +51,15 @@ export default function CardCarousel({ cards, collection, theme, onCardPress }: 
           index={index}
           scrollX={scrollX}
           cardWidth={cardWidth}
-          collection={collection}
+          icon={style.icon}
+          color={style.color}
+          subLabel={style.subLabel}
           theme={theme}
           onCardPress={onCardPress}
         />
       );
     },
-    [collection, theme, onCardPress],
+    [collection, theme, onCardPress, getCardStyle],
   );
 
   if (cards.length === 0) return null;
@@ -95,7 +102,9 @@ function CarouselItem({
   index,
   scrollX,
   cardWidth,
-  collection,
+  icon,
+  color,
+  subLabel,
   theme,
   onCardPress,
 }: {
@@ -103,7 +112,9 @@ function CarouselItem({
   index: number;
   scrollX: any;
   cardWidth: number;
-  collection: Collection;
+  icon: string;
+  color: string;
+  subLabel?: string;
   theme: Theme;
   onCardPress: (card: Card) => void;
 }) {
@@ -148,8 +159,8 @@ function CarouselItem({
       <TouchableOpacity activeOpacity={0.8} onPress={() => onCardPress(item)}>
         <CardFace
           card={item}
-          icon={collection.icon}
-          color={collection.color}
+          icon={icon}
+          color={color}
           size={CARD_SIZE}
           photoUrl={item.photo_url}
         />
@@ -157,6 +168,11 @@ function CarouselItem({
       <Text style={[styles.cardName, { color: theme.textPrimary }]} numberOfLines={1}>
         {item.name}
       </Text>
+      {subLabel ? (
+        <Text style={[styles.subLabel, { color: theme.textTertiary }]} numberOfLines={1}>
+          {subLabel}
+        </Text>
+      ) : null}
     </Animated.View>
   );
 }
@@ -187,11 +203,17 @@ const styles = StyleSheet.create({
   itemWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   cardName: {
     fontFamily: Typography.fontFamilySemiBold,
     fontSize: 13,
+    textAlign: 'center',
+    maxWidth: CARD_SIZE,
+  },
+  subLabel: {
+    fontFamily: Typography.fontFamilyRegular,
+    fontSize: 11,
     textAlign: 'center',
     maxWidth: CARD_SIZE,
   },

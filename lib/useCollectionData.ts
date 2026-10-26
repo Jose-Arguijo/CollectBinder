@@ -73,6 +73,31 @@ export function useCollectionData() {
     [collections],
   );
 
+  const getDescendantCollectionIds = useCallback(
+    (id: string): string[] => {
+      const result: string[] = [id];
+      const queue = [id];
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        const children = collections.filter((c) => c.parent_id === current);
+        for (const child of children) {
+          result.push(child.id);
+          queue.push(child.id);
+        }
+      }
+      return result;
+    },
+    [collections],
+  );
+
+  const getCardsInCollectionTree = useCallback(
+    (id: string): Card[] => {
+      const ids = new Set(getDescendantCollectionIds(id));
+      return cards.filter((c) => ids.has(c.collection_id));
+    },
+    [cards, getDescendantCollectionIds],
+  );
+
   const addCollection = useCallback(
     async (name: string, icon: string, color: string, parentId: string | null) => {
       await supabase.from('collections').insert({ name, icon, color, parent_id: parentId });
@@ -137,6 +162,7 @@ export function useCollectionData() {
     error,
     getCollection,
     getCardsInCollection,
+    getCardsInCollectionTree,
     getSubcollections,
     addCollection,
     updateCollection,
