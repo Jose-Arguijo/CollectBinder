@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -49,10 +49,11 @@ export default function CardCarousel({ cards, collection, theme, onCardPress, ge
 
   useEffect(() => {
     if (canLoop && flatListRef.current) {
-      requestAnimationFrame(() => {
+      const t = setTimeout(() => {
         flatListRef.current?.scrollToOffset({ offset: baseOffset, animated: false });
         scrollX.value = baseOffset;
-      });
+      }, 50);
+      return () => clearTimeout(t);
     }
   }, [canLoop, baseOffset]);
 
@@ -127,23 +128,23 @@ export default function CardCarousel({ cards, collection, theme, onCardPress, ge
         </Text>
       </View>
 
-      <View style={styles.carouselWrap}>
-        <FlatList
-          ref={flatListRef}
-          data={loopedData}
-          keyExtractor={(item, index) => `${item.id}-${index}`}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={ITEM_WIDTH}
-          decelerationRate="fast"
-          contentContainerStyle={[styles.list, { paddingHorizontal: SIDE_PADDING }]}
-          getItemLayout={getItemLayout}
-          onScroll={handleScroll}
-          onMomentumScrollEnd={handleMomentumEnd}
-          scrollEventThrottle={16}
-          renderItem={renderItem}
-        />
-      </View>
+      <FlatList
+        ref={flatListRef}
+        data={loopedData}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={ITEM_WIDTH}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        contentContainerStyle={[styles.list, { paddingHorizontal: SIDE_PADDING }]}
+        getItemLayout={getItemLayout}
+        onScroll={handleScroll}
+        onMomentumScrollEnd={handleMomentumEnd}
+        scrollEventThrottle={16}
+        renderItem={renderItem}
+        style={styles.listStyle}
+      />
 
       <View style={styles.counterRow}>
         <View style={[styles.counter, { backgroundColor: theme.bgElevated, borderColor: theme.border }]}>
@@ -252,13 +253,10 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamilyBold,
     fontSize: 16,
   },
-  carouselWrap: {
+  listStyle: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   list: {
-    alignItems: 'center',
     paddingVertical: Spacing.lg,
   },
   itemWrap: {
