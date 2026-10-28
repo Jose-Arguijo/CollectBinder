@@ -55,7 +55,7 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.logoWrap}>
-            <Text style={styles.logoEmoji}>🃏</Text>
+            <Text style={styles.logoEmoji}>🖲️</Text>
             <Text style={[styles.appName, { color: theme.textPrimary }]}>Binder</Text>
             <Text style={[styles.tagline, { color: theme.textSecondary }]}>
               Your personal card collection, private to you.
