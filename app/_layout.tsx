@@ -16,18 +16,18 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const router = useRouter();
 
+  const inAuthGroup = segments[0] === 'login';
+
   useEffect(() => {
     if (loading) return;
-    const inAuthGroup = segments[0] === 'login';
-
     if (!user && !inAuthGroup) {
       router.replace('/login');
     } else if (user && inAuthGroup) {
       router.replace('/');
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, inAuthGroup, router]);
 
-  if (loading) {
+  if (loading || (!user && !inAuthGroup)) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />

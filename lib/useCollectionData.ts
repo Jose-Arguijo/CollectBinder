@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase, type Collection, type Card, type CollectionWithStats } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 
 export function useCollectionData() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const loadData = useCallback(async () => {
+    if (!user) {
+      setCollections([]);
+      setCards([]);
+      setLoading(false);
+      return;
+    }
     setError(null);
     const [colRes, cardRes] = await Promise.all([
       supabase.from('collections').select('*').order('created_at', { ascending: true }),
@@ -27,7 +35,7 @@ export function useCollectionData() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, user]);
 
   const buildTree = useCallback((): CollectionWithStats[] => {
     const byParent = new Map<string | null, Collection[]>();
