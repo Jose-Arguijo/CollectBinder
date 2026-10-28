@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, SafeAreaView } from 'react-native';
-import { Plus, Sun, Moon, Layers, Search, X, FolderPlus } from 'lucide-react-native';
+import { Plus, Sun, Moon, Layers, Search, X, FolderPlus, LogOut } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/lib/theme-context';
+import { useAuth } from '@/lib/auth-context';
 import { useCollectionData, formatCurrency } from '@/lib/useCollectionData';
 import { Typography, Spacing, Radius, type Theme } from '@/lib/theme';
 import CollectionCard from '@/components/CollectionCard';
@@ -13,6 +14,7 @@ import type { CollectionWithStats } from '@/lib/supabase';
 export default function HomeScreen() {
   const { theme, isDark, toggle } = useTheme();
   const { tree, loading, error, addCollection, reload } = useCollectionData();
+  const { signOut } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -61,6 +63,12 @@ export default function HomeScreen() {
             style={[styles.iconBtn, { backgroundColor: theme.bgElevated, borderColor: theme.border }]}
           >
             {isDark ? <Sun size={20} color={theme.textPrimary} strokeWidth={2} /> : <Moon size={20} color={theme.textPrimary} strokeWidth={2} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={signOut}
+            style={[styles.iconBtn, { backgroundColor: theme.bgElevated, borderColor: theme.border }]}
+          >
+            <LogOut size={20} color={theme.textPrimary} strokeWidth={2} />
           </TouchableOpacity>
         </View>
       </View>

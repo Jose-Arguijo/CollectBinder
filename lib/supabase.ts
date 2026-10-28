@@ -9,7 +9,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
   },
 });
 
@@ -19,6 +21,7 @@ export type Collection = {
   icon: string;
   color: string;
   parent_id: string | null;
+  user_id: string;
   created_at: string;
 };
 
@@ -33,6 +36,7 @@ export type Card = {
   value: number;
   notes: string;
   photo_url: string | null;
+  user_id: string;
   created_at: string;
 };
 

@@ -123,7 +123,7 @@ export function useCollectionData() {
   );
 
   const addCard = useCallback(
-    async (card: Omit<Card, 'id' | 'created_at'>) => {
+    async (card: Omit<Card, 'id' | 'created_at' | 'user_id'>) => {
       await supabase.from('cards').insert(card);
       await loadData();
     },
@@ -131,7 +131,7 @@ export function useCollectionData() {
   );
 
   const updateCard = useCallback(
-    async (id: string, updates: Partial<Omit<Card, 'id' | 'created_at'>>) => {
+    async (id: string, updates: Partial<Omit<Card, 'id' | 'created_at' | 'user_id'>>) => {
       await supabase.from('cards').update(updates).eq('id', id);
       await loadData();
     },
